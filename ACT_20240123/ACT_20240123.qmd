@@ -1,0 +1,268 @@
+---
+title: "Accessing and understanding your data extracts with `matos`, `rvdat`, and `otndo`"
+date: 'Jan. 23, 2024'
+author: "Mike O'Brien"
+institute: "University of Maryland Center for Environmental Science"
+format:
+  revealjs:
+    incremental: true
+    self-contained: true
+editor: visual
+execute: 
+  echo: true
+  eval: true
+  message: true
+  warning: true
+  cahce: true
+---
+
+- Interact with the ACT_MATOS database
+- Pull data from receivers or ACT_MATOS database
+- Wrap your head around ACT/OTN data pushes
+
+- Programmatic and reproducible
+
+- <https://ocean-tracking-network.r-universe.dev>
+
+
+# `matos`
+
+<https://matos.obrien.page>
+
+-   An API to the MATOS website/database tool
+-   List projects and files, download files, upload files to MATOS
+-   No data analysis/manipulation
+-   May provide sanity checks in the future (Kim's sanity)
+
+## Connect to the MATOS database
+
+Treat this just like you're visiting <https://matos.asascience.com/account/login>
+
+```{r}
+library(matos)
+
+matos_login()
+```
+
+![](MATOS%20login.png){fig-align="right"}
+
+## List all projects
+
+-   Like visiting <https://matos.asascience.com/project>, but more.
+-   Connects to the OTN database to quickly download project metadata
+
+```{r}
+#| message: true
+all_projects <- list_projects()
+```
+
+## 
+
+```{r}
+#| echo: false
+dplyr::as_tibble(all_projects)
+```
+
+## List only your projects
+
+```{r}
+list_my_projects()
+```
+
+## List your project's files
+
+```{r}
+list_project_files(project = 161)
+```
+
+## Download (get) a project file
+
+```{r}
+get_project_file(2, 161)
+```
+
+## List your data extract files
+
+```{r}
+list_extract_files(project = 161)
+```
+
+## Download (get) your data extract files
+
+```{r}
+get_extract_file(1, 161)
+```
+
+## How is this helpful?
+
+Project management! Bulk downloads:
+
+```{r}
+#| eval: false
+list_extract_files(161)$url |> 
+  lapply(
+    function(url) get_extract_file(url = url)
+  )
+```
+
+## How is this helpful?
+
+Bulk uploads:
+
+```{r}
+#| eval: false
+upload_file(
+  161,
+  list.files('everything in this folder')
+)
+```
+
+## How is this helpful?
+
+Networking:
+
+*"I wonder who else is working on striped bass?"*
+
+```{r}
+all_projects <- list_projects()
+
+all_projects[grepl('striped bass', all_projects$abstract), ]$name
+```
+## More information
+
+<https://matos.obrien.page>
+
+obrien@umces.edu
+
+![](matos_package_website.png)
+
+
+# `rvdat`
+
+*Change your VUEpoint of receiver data*
+
+<https://rvdat.obrien.page/>
+
+- An interface to `vdat.exe`, distributed with Fathom Connect
+
+![](fathom_connect_download.png)
+
+## Big note
+
+-   `rvdat` just talks to `vdat.exe`, nothing more (like data manipulation)
+-   If you're a `glatos` user, this functionality will be baked into the newest version (0.8.0).
+    -   <https://github.com/ocean-tracking-network/glatos/tree/dev>
+
+## Connect to your instance of VDAT
+
+```{r}
+library(rvdat)
+
+vdat_here('c:/program files/innovasea/fathom/vdat.exe')
+```
+
+## Inspect your file
+
+```{r}
+info <- vdat_inspect('VR2AR_546323_20231012_1.vrl')
+```
+## Inspect your file... to a data.frame
+```{r}
+info
+```
+
+
+## Convert your VRL file (or other VDAT files!)
+
+```{r}
+vdat_to_folder('VR2AR_546323_20231012_1.vrl')
+list.files('VR2AR_546323_20231012_1.csv-fathom-split')
+```
+
+## Pull out detections
+
+```{r}
+dets <- read.csv('VR2AR_546323_20231012_1.csv-fathom-split/DET.csv',
+                 skip = 1)
+
+xtabs(~ Full.ID, data = dets)
+```
+
+## Pull out temperature data
+
+```{r}
+bwt <- read.csv('VR2AR_546323_20231012_1.csv-fathom-split/TEMP.csv',
+                skip = 1)
+
+plot.ts(bwt$Ambient..deg.C.)
+```
+
+## Noise
+
+```{r}
+diag <- read.csv('VR2AR_546323_20231012_1.csv-fathom-split/DIAG.csv',
+                skip = 1)
+
+plot.ts(diag$Noise.Mean..mV.)
+```
+
+## Tilt
+
+```{r}
+plot.ts(diag$Tilt..deg.)
+```
+
+## Depth
+
+```{r}
+plot.ts(diag$Depth..m.)
+```
+
+## Pings
+
+```{r}
+plot.ts(diag$PPM.Pings)
+```
+
+## Detections
+
+```{r}
+plot.ts(diag$PPM.Detections)
+```
+
+## More information
+<https://rvdat.obrien.page>
+
+![](rvdat_package_website.png)
+
+
+
+# otndo
+
+-   Understand ACT/OTN data pushes
+-   Quick-and-dirty summary of the data push
+-   Back to the "network"
+
+## What's needed
+
+```{r}
+list_my_projects()
+```
+
+
+## Receiver summary
+
+```{r}
+#| eval: false
+library(otndo)
+
+matos_receiver_summary(161)
+```
+
+## Transmitter summary
+
+```{r}
+#| eval: false
+matos_tag_summary(87)
+```
+
